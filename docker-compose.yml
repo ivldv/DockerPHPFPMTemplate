@@ -1,0 +1,65 @@
+version: "3.9"
+networks:
+  ivldv_net:
+#    driver: bridge
+volumes:
+  ivldv_mysql_data:
+
+services:
+  php:
+    build:
+      context: ./docker/php/
+    container_name: ivldv_php_fpm
+    depends_on:
+      - mysql
+    restart: always
+    volumes:
+      - "./:/var/www/html"
+    networks: 
+      ivldv_net:
+
+  nginx:
+    image: nginx:latest
+    container_name: ivldv_nginx
+    restart: always
+    depends_on:
+      - mysql
+      - php
+    ports:
+      - 8000:80
+    volumes:
+      - ./:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    networks:
+      ivldv_net:
+
+  mysql:
+    image: mysql:8
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+    container_name: ivldv_mysql
+    restart: always
+    ports: 
+      - "3306:3306"
+    volumes:
+      - ivldv_mysql_data:/var/lib/mysql
+    networks:
+      ivldv_net:
+
+  composer:
+    build:
+      context: ./docker/
+      dockerfile: composer_docerfile
+    container_name: ivldv_composer
+    volumes:
+      - "./:/var/www/html"
+
+  artisan:
+    build:
+      context: ./docker/php/
+      dockerfile: docerfile
+    container_name: ivldv_artisan
+    volumes:
+      - ./:/var/www/html
+    entrypoint: ["php", "/var/www/html/artisan"]
+
